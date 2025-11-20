@@ -15,6 +15,7 @@ app.get("/", (req, res) => {
 //Create a product. Adds the product to the database
 app.post('/create_product', (req, res) => {
     var data = req.body;
+    console.log(data);
     try {
         var upc = data.upc;
         pool.query("SELECT * FROM product WHERE productupc = $1", [data.productupc]).then(result => {
@@ -22,7 +23,7 @@ app.post('/create_product', (req, res) => {
                 console.log("UPC Unique!");
                 try {
                     var query = `INSERT INTO PRODUCT (productsku, productname, productcost, productprice, productupc, productdescription, inventorycount, itemstatus) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
-                    var values = [data.productsku, data.productname, data.productcost, data.productprice, data.productupc, data.productdescription, data.productinventory, data.productstatus];
+                    var values = [data.productsku, data.productname, data.productcost, data.productprice, BigInt(data.productupc), data.productdescription, data.productinventory, data.productstatus];
                     pool.query(query, values);
                     res.send("Product Added Successfully!");
 
@@ -69,6 +70,25 @@ app.post('/add_employee', async (req, res) => {
 app.post('/update_employee', async (req, res) => {
 
 })
+
+app.post("/search_inventory", async (req, res) => {
+    var data = req.body;
+    const searchElement = data.search + "%"
+    try {
+        pool.query("SELECT * FROM product WHERE productname LIKE $1", [searchElement]).then(result => {
+            if (result.rows.length == 0) {
+                res.send("No Products Found!");
+            } else {
+                console.log(result.rows);
+                res.json(result.rows);
+            }
+        });
+    } catch (err) {
+        console.log(err);
+    }
+
+});
+
 //Send a JSON object with products
 app.post('/make_sale', async (req, res) => {
     var data = req.body;
