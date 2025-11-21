@@ -71,6 +71,46 @@ app.post('/update_employee', async (req, res) => {
 
 })
 
+
+function CheckIfUPC(data) {
+    return data >= 1000 && data <= 9999;
+}
+
+app.post("/get_product_for_sale", async (req, res) => {
+
+    var data = req.body;
+    console.log(data);
+    console.log(BigInt(data.searchMethod));
+    if (CheckIfUPC(BigInt(data.searchMethod))) {
+        console.log("UPC");
+        pool.query("SELECT * FROM product WHERE productsku=$1", [BigInt(data.searchMethod)]).then(result => {
+            if (result.rows.length == 0) {
+                res.send("No Matching Products");
+            } else {
+                res.json(result.rows);
+
+            }
+
+        });
+
+    } else {
+        pool.query("SELECT * FROM product WHERE productupc=$1", [data.searchMethod]).then(result => {
+            if (result.rows.length == 0) {
+                res.send("No Matching Products");
+            } else {
+                res.json(result.rows);
+            }
+
+        });
+    }
+
+
+
+
+
+
+})
+    ;
 app.post("/search_inventory", async (req, res) => {
     var data = req.body;
     const searchElement = data.search + "%"
@@ -98,23 +138,31 @@ app.post('/make_sale', async (req, res) => {
     var method = data.method; //paymentMethod
     var saleId = data.id;
 
-
+    console.log(data);
 
     try {
         var query = `INSERT INTO sale (saleid, saledate, saleamount, paymentmethod) VALUES ($1, $2, $3, $4)`;
         var values = [saleId, timestamp, saleAmount, method];
         pool.query(query, values);
-        for (var product of data.products) {
-            console.log(product.sku);
+
+        for (var i = 0; i < products.length; i++) {
+            console.log(products[i]);
+
             var query_for_sales_item = `INSERT INTO sale_item (saleid, itemname, productsku, itemcount) VALUES ($1, (SELECT productname FROM product WHERE productsku=$2),$2,$3)`;
-            var query_values = [saleId, product.sku, 1];
+            var query_values = [saleId, products[i], 1];
             try {
                 pool.query(query_for_sales_item, query_values);
+                res.send("success");
+
 
             } catch (err) {
                 console.log(err);
+                res.status(500).json({ success: false, error: "Failed to record sale" });
             }
+
+
         }
+
 
     } catch (err) {
         console.log(err);
@@ -145,7 +193,6 @@ app.get("/get_inventory", async (req, res) => {
 });
 
 app.get("/get_new_sku", async (req, res) => {
-    console.log("SKU REQUEST");
     try {
         const result = await pool.query(
             "SELECT currentsku FROM SKU_COUNTER WHERE entryId = 1;"
@@ -167,7 +214,30 @@ app.get("/get_new_sku", async (req, res) => {
     }
 });
 
+app.get("/get_sale_counter", async (req, res) => {
+    console.log("Sales counter called");
+    try {
+        const result = await pool.query(
+            "SELECT currentsale FROM SALE_COUNTER WHERE entryId = 1;"
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Sale Counter not found" });
+        }
 
+        let currentSale = result.rows[0].currentsale;
+        const incrementSale = currentSale + 1;
+        await pool.query(
+            "UPDATE SALE_COUNTER SET currentsale = $1 WHERE entryId = 1;",
+            [incrementSale]
+        );
+        res.send(currentSale);
+
+        console.log("Current Sale: " << currentSale);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
 app.get("/get_sales_data", async (req, res) => {
     console.log("Sales data requested");
     try {
