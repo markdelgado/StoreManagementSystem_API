@@ -74,7 +74,7 @@ app.post('/update_product', (req, res) => {
 //Will need employee name, username, pin, and level (A= Admin/Owner, M=Manager, C=Cashier);
 app.post('/add_employee', async (req, res) => {
     var data = req.body;
-    var employeeID = data['employeeID'];
+    //var employeeID = data['employeeID'];
     var employeeName = data['employeeName'];
     var employeeUsername = data['employeeUsername'];
     var employeePin = data['employeePin'];
@@ -82,8 +82,8 @@ app.post('/add_employee', async (req, res) => {
 
 
     pool.query(
-        "INSERT INTO employee (employeeID, employeeName, employeeUsername, employeePin, employeeLevel) VALUES ($1,$2,$3,$4,$5)",
-        [employeeID, employeeName, employeeUsername, employeePin, employeeLevel]
+        "INSERT INTO employee (employeeName, employeeUsername, employeePin, employeeLevel) VALUES ($1,$2,$3,$4,$5)",
+        [employeeName, employeeUsername, employeePin, employeeLevel]
     )
         .then(result => {
             console.log("Insert successful");
@@ -98,7 +98,28 @@ app.post('/add_employee', async (req, res) => {
 });
 //Send a JSON object with the new employee data and update the corresponding data
 app.post('/update_employee', async (req, res) => {
+    var data = req.body;
 
+    var employeeID = data['employeeID'];
+    var employeeName = data['employeeName'];
+    var employeeUsername = data['employeeUsername'];
+    var employeePin = data['employeePin'];
+    var employeeLevel = String.fromCharCode(data['employeeLevel']);
+
+    pool.query(
+        "UPDATE employee SET employeeName = $1, employeeUsername = $2, employeePin = $3, employeeLevel = $4 WHERE employeeID = $5",
+        [employeeName, employeeUsername, employeePin, employeeLevel, employeeID]
+    )
+        .then(result => {
+            console.log("Update successful");
+            res.send("employee updated successfully!");
+        })
+        .catch(err => {
+            console.error("Error updating employee:", err);
+            res.send(err);
+
+        });
+    console.log(err);
 })
 
 app.get("/get_employees", async (req, res) => {
