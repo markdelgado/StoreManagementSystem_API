@@ -41,6 +41,36 @@ app.post('/create_product', (req, res) => {
     }
 
 })
+
+app.post('/update_product', (req, res) => {
+    var data = req.body;
+    console.log(data);
+    try {
+        var upc = BigInt(data.productupc);
+        console.log(upc);
+        pool.query("SELECT * FROM product WHERE productupc = $1  AND productsku <> $2", [data.productupc, data.productsku]).then(result => {
+            if (result.rows.length === 0) {
+                console.log("UPC Unique!");
+                try {
+                    var query = "UPDATE product SET productname = $1, productcost = $2, productprice = $3, productupc = $4, productdescription = $5, inventorycount = $6, itemstatus = $7 WHERE productsku = $8";
+                    var values = [data.productname, data.productcost, data.productprice, BigInt(data.productupc), data.productdescription, data.productinventory, data.productstatus, data.productsku];
+                    pool.query(query, values);
+                    res.send("Product Updated Successfully!");
+
+                } catch (err) {
+                    console.log("Error with Query, please try again!" + err);
+                }
+            } else {
+                console.log("No results found");
+                res.send("Cannot Add, UPC already in use!");
+                return;
+            }
+        });
+    } catch (err) {
+        console.log("error: " + err);
+    }
+
+})
 //Will need employee name, username, pin, and level (A= Admin/Owner, M=Manager, C=Cashier);
 app.post('/add_employee', async (req, res) => {
     var data = req.body;
@@ -70,6 +100,26 @@ app.post('/add_employee', async (req, res) => {
 app.post('/update_employee', async (req, res) => {
 
 })
+
+app.get("/get_employees", async (req, res) => {
+
+    try {
+        var q = "SELECT * FROM EMPLOYEE";
+        pool.query(q).then(result => {
+            if (result.rows.length == 0) {
+                console.log("No data");
+                res.send("No Data");
+            } else {
+                res.json(result.rows);
+            }
+        });
+
+
+    } catch (error) {
+        console.log(error)
+    }
+
+});
 
 
 function CheckIfUPC(data) {
@@ -131,38 +181,58 @@ app.post("/search_inventory", async (req, res) => {
 
 //Send a JSON object with products
 app.post('/make_sale', async (req, res) => {
-    var data = req.body;
-    var timestamp = data.timestamp;
-    var products = data.products;
-    var saleAmount = data.total;
-    var method = data.method; //paymentMethod
-    var saleId = data.id;
+    const data = req.body;
+    const timestamp = data.timestamp;
+    const products = data.products; // array of SKUs
+    const saleAmount = data.total;
+    const method = data.method;
+    const saleId = data.id;
 
     console.log(data);
 
     try {
-        var query = `INSERT INTO sale (saleid, saledate, saleamount, paymentmethod) VALUES ($1, $2, $3, $4)`;
-        var values = [saleId, timestamp, saleAmount, method];
-        pool.query(query, values);
+        // Insert the sale
+        const insertSaleQuery = `INSERT INTO sale (saleid, saledate, saleamount, paymentmethod) VALUES ($1, $2, $3, $4)`;
+        const saleValues = [saleId, timestamp, saleAmount, method];
+        await pool.query(insertSaleQuery, saleValues);
 
-        for (var i = 0; i < products.length; i++) {
-            console.log(products[i]);
+        // Loop through products
+        for (const sku of products) {
+            console.log("Processing SKU:", sku);
 
-            var query_for_sales_item = `INSERT INTO sale_item (saleid, itemname, productsku, itemcount) VALUES ($1, (SELECT productname FROM product WHERE productsku=$2),$2,$3)`;
-            var query_values = [saleId, products[i], 1];
-            try {
-                pool.query(query_for_sales_item, query_values);
-                res.send("success");
+            // Insert sale item
+            const insertSaleItemQuery = `
+                INSERT INTO sale_item (saleid, itemname, productsku, itemcount)
+                VALUES ($1, (SELECT productname FROM product WHERE productsku=$2), $2, $3)
+            `;
+            const saleItemValues = [saleId, sku, 1];
+            await pool.query(insertSaleItemQuery, saleItemValues);
 
-
-            } catch (err) {
-                console.log(err);
-                res.status(500).json({ success: false, error: "Failed to record sale" });
-            }
-
-
+            // Decrement inventory safely
+            const updateInventoryQuery = `
+                UPDATE product
+                SET inventorycount = GREATEST(inventorycount - 1, 0)
+                WHERE productsku = $1
+            `;
+            await pool.query(updateInventoryQuery, [sku]);
+            console.log("Inventory decremented for SKU:", sku);
         }
 
+        res.send("success");
+
+    } catch (err) {
+        console.error("Error processing sale:", err);
+        res.status(500).json({ success: false, error: "Failed to record sale" });
+    }
+});
+
+app.post('/create_clockin', async (req, res) => {
+
+    var data = req.body;
+    console.log(req.body);
+
+    try {
+        var query = "INSERT INTO clock_in VALUES("
 
     } catch (err) {
         console.log(err);
@@ -170,10 +240,6 @@ app.post('/make_sale', async (req, res) => {
 
 
 
-
-})
-
-app.post('/create_clockin', async (req, res) => {
 });
 
 
