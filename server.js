@@ -55,18 +55,19 @@ app.post('/update_product', (req, res) => {
                     var query = "UPDATE product SET productname = $1, productcost = $2, productprice = $3, productupc = $4, productdescription = $5, inventorycount = $6, itemstatus = $7 WHERE productsku = $8";
                     var values = [data.productname, data.productcost, data.productprice, BigInt(data.productupc), data.productdescription, data.productinventory, data.productstatus, data.productsku];
                     pool.query(query, values);
-                    res.send("Product Updated Successfully!");
+                    res.send("success");
 
                 } catch (err) {
                     console.log("Error with Query, please try again!" + err);
                 }
             } else {
                 console.log("No results found");
-                res.send("Cannot Add, UPC already in use!");
+                res.send("upc_error");
                 return;
             }
         });
     } catch (err) {
+        res.send(err);
         console.log("error: " + err);
     }
 
