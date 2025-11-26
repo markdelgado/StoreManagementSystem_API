@@ -1,3 +1,4 @@
+
 import express from 'express';
 import dotenv from 'dotenv';
 import pool from './db/pool.js';
@@ -116,10 +117,11 @@ app.post('/update_employee', async (req, res) => {
         })
         .catch(err => {
             console.error("Error updating employee:", err);
+            console.log(err);
             res.send(err);
 
         });
-    console.log(err);
+
 })
 
 app.get("/get_employees", async (req, res) => {
