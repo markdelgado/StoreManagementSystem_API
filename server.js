@@ -407,3 +407,62 @@ app.post("/login", async (req, res) => {
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 });
+
+
+//Get schedule for an employee
+app.get('/get_schedule/:employeeID', async (req, res) => {
+    const employeeID = req.params.employeeID;
+
+    pool.query(
+        "SELECT scheduleid, employeeid, shiftdate, starttime, endtime FROM schedule WHERE employeeid = $1 ORDER BY shiftdate, starttime",
+        [employeeID]
+    )
+    .then(result => {
+        res.json(result.rows);
+    })
+    .catch(err => {
+        console.error("Error getting schedule:", err);
+        res.status(500).send(err);
+    });
+});
+
+//Add a shift to the schedule
+app.post('/add_shift', async (req, res) => {
+    const data = req.body;
+    const employeeID = data.employeeID;
+    const shiftDate = data.shiftDate;
+    const startTime = data.startTime;
+    const endTime = data.endTime;
+
+    pool.query(
+        "INSERT INTO schedule (employeeid, shiftdate, starttime, endtime) VALUES ($1, $2, $3, $4)",
+        [employeeID, shiftDate, startTime, endTime]
+    )
+    .then(result => {
+        res.send("Shift added successfully!");
+    })
+    .catch(err => {
+        console.error("Error adding shift:", err);
+        res.status(500).send(err);
+    });
+});
+
+//Get all schedules with employee names
+app.get('/get_all_schedules', async (req, res) => {
+    pool.query(
+        `SELECT s.scheduleid, 
+                s.shiftdate, 
+                s.starttime, 
+                s.endtime, 
+                e.employeeid, 
+                e.employeename
+         FROM schedule s
+         JOIN employee e ON e.employeeid = s.employeeid
+         ORDER BY s.shiftdate, s.starttime`,
+    )
+    .then(result => res.json(result.rows))
+    .catch(err => {
+        console.error(err);
+        res.status(500).send(err);
+    });
+});
