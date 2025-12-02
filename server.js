@@ -73,6 +73,17 @@ app.post('/update_product', (req, res) => {
     }
 
 })
+//TEMP DELETE ALL PRODUCTS
+app.get('/wipe_products', async (req, res) => {
+    try {
+        await pool.query("DELETE FROM product;");
+        res.send("All products deleted.");
+    } catch (err) {
+        console.log("Error deleting products: " + err);
+        res.send("Error deleting products.");
+    }   
+});
+
 //Will need employee name, username, pin, and level (A= Admin/Owner, M=Manager, C=Cashier);
 app.post('/add_employee', async (req, res) => {
     var data = req.body;
