@@ -476,6 +476,7 @@ app.get('/get_all_schedules', async (req, res) => {
         console.error(err);
         res.status(500).send(err);
     });
+});
 
     //Delete a shift by id
 app.get('/delete_shift/:id', async (req, res) => {
@@ -491,4 +492,7 @@ app.get('/delete_shift/:id', async (req, res) => {
      });
     });
 
+
+app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`)
 });
