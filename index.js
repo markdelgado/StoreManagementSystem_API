@@ -1,12 +1,19 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import pool from './db/pool.js';
-
+import cors from 'cors';
 
 const app = express();
 const port = 3000;
+
 app.use(express.json());
 
+
+app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
+}));
 app.get("/", (req, res) => {
     res.send("Hello World");
 });
