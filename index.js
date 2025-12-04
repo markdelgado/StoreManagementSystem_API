@@ -9,8 +9,22 @@ const port = 3000;
 app.use(express.json());
 
 
+const allowedOrigins = [
+    "http://localhost:3000",                
+    "https://sms-web-client.onrender.com",   
+];
+
+// CORS 
 app.use(cors({
-    origin: "*",
+    origin: function(origin, callback) {
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error("CORS blocked for origin: " + origin));
+        }
+    },
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"]
 }));
